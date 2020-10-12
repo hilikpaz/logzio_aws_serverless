@@ -14,7 +14,7 @@ LOG_LEVELS = ['alert', 'trace', 'debug', 'notice', 'info', 'warn',
               'severe', 'emerg', 'emergency']
 
 PYTHON_EVENT_SIZE = 3
-NODEJS_EVENT_SIZE = 4
+NODEJS_EVENT_SIZE = 5
 LAMBDA_LOG_GROUP = '/aws/lambda/'
 
 
@@ -40,16 +40,7 @@ def _extract_aws_logs_data(event):
 def _extract_lambda_log_message(log):
     # type: (dict) -> None
     str_message = str(log['message'])
-    try:
-        start_level = str_message.index('[')
-        end_level = str_message.index(']')
-        log_level = str_message[start_level + 1:end_level]
-        if log_level.lower() in LOG_LEVELS:
-            log['log_level'] = log_level
-        start_split = end_level + 2
-    except ValueError:
-        # Let's try without log level
-        start_split = 0
+    start_split = 0
     message_parts = str_message[start_split:].split('\t')
     size = len(message_parts)
     if size == PYTHON_EVENT_SIZE or size == NODEJS_EVENT_SIZE:
@@ -57,7 +48,7 @@ def _extract_lambda_log_message(log):
         log['requestID'] = message_parts[1]
         log['message'] = message_parts[size - 1]
     if size == NODEJS_EVENT_SIZE:
-        log['log_level'] = message_parts[2]
+        log['log_level'] = message_parts[2].lower()
 
 
 def _add_timestamp(log):
@@ -67,13 +58,18 @@ def _add_timestamp(log):
         del log['timestamp']
 
 
+
 def _parse_to_json(log):
     # type: (dict) -> None
     try:
+        json_object = json.loads(log['message'])
         if os.environ['FORMAT'].lower() == 'json':
-            json_object = json.loads(log['message'])
             for key, value in json_object.items():
                 log[key] = value
+        else: #extract level
+            log_level = json_object['level']
+            if log_level.lower() in LOG_LEVELS:
+                log['log_level'] = log_level
     except (KeyError, ValueError) as e:
         pass
 
