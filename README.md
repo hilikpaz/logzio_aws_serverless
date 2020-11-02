@@ -10,4 +10,4 @@ We urge you to use Python 3 because Python 2.7 will reach end of life on January
 
 #  Grok Patterns
 **for the cloudwatch_text format introduced in bf85259811a7ccadde700e3e0dcd79f79e43c13e**:
-({"message":)?{("type":"%{WORD:type}",)?("function":"%{WORD:module}::%{WORD:function}")?(.*,"companyId":"%{USERNAME:companyId}")?(.*,"functionName":"%{USERNAME:functionName}")?(.*,"level":"%{WORD:level}")?
+({"message":)?{("type":"%{WORD:type}",)?("function":"%{WORD:module}::%{WORD:function}")?(.\*,"companyId":"%{USERNAME:companyId}")?(.\*,"functionName":"%{USERNAME:functionName}")?(.\*,"level":"%{WORD:level}")?
