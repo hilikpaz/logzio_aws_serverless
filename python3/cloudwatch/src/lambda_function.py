@@ -12,6 +12,8 @@ VALUE_INDEX = 1
 LOG_LEVELS = ['alert', 'trace', 'debug', 'notice', 'info', 'warn',
               'warning', 'error', 'err', 'critical', 'crit', 'fatal',
               'severe', 'emerg', 'emergency']
+              
+LOG_LEVELS_IGNORE = ['info']
 
 PYTHON_EVENT_SIZE = 3
 NODEJS_EVENT_SIZE = 5
@@ -57,7 +59,11 @@ def _add_timestamp(log):
         log['@timestamp'] = str(log['timestamp'])
         del log['timestamp']
 
-
+def _add_level(log):
+    if 'level' not in log:
+        message = log['message']
+        if 'Task timed out after' in message:
+            log['level'] = 'error'
 
 def _parse_to_json(log):
     # type: (dict) -> None
@@ -67,9 +73,10 @@ def _parse_to_json(log):
             for key, value in json_object.items():
                 log[key] = value
         else: #extract level
-            log_level = json_object['level']
-            if log_level.lower() in LOG_LEVELS:
-                log['log_level'] = log_level
+            if 'level' in json_object: 
+                log_level = json_object['level']
+                if log_level.lower() in LOG_LEVELS:
+                    log['log_level'] = log_level
     except (KeyError, ValueError) as e:
         pass
 
@@ -77,6 +84,7 @@ def _parse_to_json(log):
 def _parse_cloudwatch_log(log, additional_data):
     # type: (dict, dict) -> bool
     _add_timestamp(log)
+    _add_level(log)
     if LAMBDA_LOG_GROUP in additional_data['logGroup']:
         if _is_valid_log(log):
             _extract_lambda_log_message(log)
@@ -84,6 +92,8 @@ def _parse_cloudwatch_log(log, additional_data):
             return False
     log.update(additional_data)
     _parse_to_json(log)
+    if 'log_level' in log and log['log_level'].lower() in LOG_LEVELS_IGNORE:
+        return False
     return True
 
 
