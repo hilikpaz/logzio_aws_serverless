@@ -138,7 +138,6 @@ def _is_valid_log(log):
 
 def lambda_handler(event, context):
     # type (dict, 'LambdaContext') -> None
-    print(json.dumps(event))
 
     aws_logs_data = _extract_aws_logs_data(event)
     additional_data = _get_additional_logs_data(aws_logs_data, context)
