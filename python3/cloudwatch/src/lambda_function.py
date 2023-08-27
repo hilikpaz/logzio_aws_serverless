@@ -16,6 +16,7 @@ LOG_LEVELS = ['alert', 'trace', 'debug', 'notice', 'info', 'warn',
 LOG_LEVELS_IGNORE = ['info']
 
 PYTHON_EVENT_SIZE = 3
+LAMBDA_JS_EVENT_SIZE = 4
 NODEJS_EVENT_SIZE = 5
 LAMBDA_LOG_GROUP = '/aws/lambda/'
 
@@ -45,11 +46,11 @@ def _extract_lambda_log_message(log):
     start_split = 0
     message_parts = str_message[start_split:].split('\t')
     size = len(message_parts)
-    if size == PYTHON_EVENT_SIZE or size == NODEJS_EVENT_SIZE:
+    if size == PYTHON_EVENT_SIZE or size == NODEJS_EVENT_SIZE or size ==LAMBDA_JS_EVENT_SIZE:
         log['@timestamp'] = message_parts[0]
         log['requestID'] = message_parts[1]
         log['message'] = message_parts[size - 1]
-    if size == NODEJS_EVENT_SIZE:
+    if size == NODEJS_EVENT_SIZE or size ==LAMBDA_JS_EVENT_SIZE:
         log['log_level'] = message_parts[2].lower()
 
 
@@ -60,6 +61,7 @@ def _add_timestamp(log):
         del log['timestamp']
 
 def _add_level(log):
+
     if 'level' not in log:
         message = log['message']
         if 'Task timed out after' in message:
@@ -93,6 +95,8 @@ def _parse_cloudwatch_log(log, additional_data):
     log.update(additional_data)
     _parse_to_json(log)
     if 'log_level' in log and log['log_level'].lower() in LOG_LEVELS_IGNORE:
+        return False
+    if 'level' in log and log['level'].lower() in LOG_LEVELS_IGNORE:
         return False
     return True
 
@@ -128,12 +132,13 @@ def _get_additional_logs_data(aws_logs_data, context):
 def _is_valid_log(log):
     # type (dict) -> bool
     message = log['message']
-    is_info_log = message.startswith('START') or message.startswith('END') or message.startswith('REPORT')
+    is_info_log = message.startswith('START') or message.startswith('END') or message.startswith('REPORT') or message.startswith('INIT_START')
     return not is_info_log
 
 
 def lambda_handler(event, context):
     # type (dict, 'LambdaContext') -> None
+    print(json.dumps(event))
 
     aws_logs_data = _extract_aws_logs_data(event)
     additional_data = _get_additional_logs_data(aws_logs_data, context)
@@ -144,6 +149,7 @@ def lambda_handler(event, context):
         if not isinstance(log, dict):
             raise TypeError("Expected log inside logEvents to be a dict but found another type")
         if _parse_cloudwatch_log(log, additional_data):
+
             shipper.add(log)
 
     shipper.flush()
