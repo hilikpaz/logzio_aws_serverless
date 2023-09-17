@@ -135,6 +135,19 @@ def _is_valid_log(log):
     is_info_log = message.startswith('START') or message.startswith('END') or message.startswith('REPORT') or message.startswith('INIT_START')
     return not is_info_log
 
+def is_simple_value(value):
+    return isinstance(value, (str, int, float, bool))
+    
+def flatten_object(obj):
+    flattened = {}
+    for key, value in obj.items():
+        if is_simple_value(value):
+            flattened[key] = value
+        else:
+            flattened[f"{key}_v3"] = json.dumps(value)
+    flattened['logVerstion'] = 'v3'
+    return flattened
+
 
 def lambda_handler(event, context):
     # type (dict, 'LambdaContext') -> None
@@ -149,6 +162,6 @@ def lambda_handler(event, context):
             raise TypeError("Expected log inside logEvents to be a dict but found another type")
         if _parse_cloudwatch_log(log, additional_data):
 
-            shipper.add(log)
+            shipper.add(flatten_object(log))
 
     shipper.flush()
