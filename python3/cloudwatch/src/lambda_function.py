@@ -96,6 +96,8 @@ def _parse_cloudwatch_log(log, additional_data):
     _parse_to_json(log)
     if 'log_level' in log and log['log_level'].lower() in LOG_LEVELS_IGNORE:
         return False
+    if 'level' in log and log['level'].lower() in LOG_LEVELS_IGNORE:
+        return False
     return True
 
 
@@ -130,13 +132,28 @@ def _get_additional_logs_data(aws_logs_data, context):
 def _is_valid_log(log):
     # type (dict) -> bool
     message = log['message']
-    is_info_log = message.startswith('START') or message.startswith('END') or message.startswith('REPORT')
+    is_info_log = message.startswith('START') or message.startswith('END') or message.startswith('REPORT') or message.startswith('INIT_START')
     return not is_info_log
 
+def is_simple_value(value):
+    return isinstance(value, (str, int, float, bool))
+    
+def flatten_object(obj):
+    flattened = {}
+    for key, value in obj.items():
+        if is_simple_value(value):
+            flattened[key] = value
+        else:
+            if key == 'data':
+                for k, v in value.items():
+                    if is_simple_value(v):
+                        flattened[k] = v
+            flattened[key] = json.dumps(value)
+    flattened['logVerstion'] = 'v3'
+    return flattened
 
 def lambda_handler(event, context):
     # type (dict, 'LambdaContext') -> None
-    print(json.dumps(event))
 
     aws_logs_data = _extract_aws_logs_data(event)
     additional_data = _get_additional_logs_data(aws_logs_data, context)
@@ -148,6 +165,6 @@ def lambda_handler(event, context):
             raise TypeError("Expected log inside logEvents to be a dict but found another type")
         if _parse_cloudwatch_log(log, additional_data):
 
-            shipper.add(log)
+            shipper.add(flatten_object(log))
 
     shipper.flush()
