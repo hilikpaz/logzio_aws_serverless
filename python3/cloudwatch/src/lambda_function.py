@@ -66,9 +66,9 @@ def _add_level(log):
         message = log['message']
         if 'Task timed out after' in message:
             log['level'] = 'error'
-        if 'No quota left for account' in message:
-            log['level'] = 'error'  
-            log['function'] = 'SMS missing quota'
+        if 'smsType' in message:
+            log['level'] = 'error'    
+            log['function'] = 'SMS Error' 
 
 def _parse_to_json(log):
     # type: (dict) -> None
