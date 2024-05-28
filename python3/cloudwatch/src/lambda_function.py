@@ -69,7 +69,6 @@ def _add_level(log):
         if 'FATAL ERROR:' in message:
             log['level'] = 'error'   
             log['function'] = 'Unknown'    
-
         # if 'smsType' in message:
             # log['level'] = 'error'    
             # log['function'] = 'SMS Error'    
