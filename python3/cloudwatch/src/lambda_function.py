@@ -66,7 +66,7 @@ def _add_level(log):
         message = log['message']
         if 'Task timed out after' in message:
             log['level'] = 'error'
-        if 'FATAL ERROR:' in message:
+        if 'FATAL ERROR:' in message or 'Runtime.ImportModuleError' in message:
             log['level'] = 'error'   
             log['function'] = 'Unknown'    
         # if 'smsType' in message:
